@@ -1,11 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { useHealthCheck } from "../hooks/useHealthCheck";
 import Header from "../components/Header";
 import LoadingCircle from "../components/LoadingCircle";
-import { io } from "socket.io-client";
-import { STATES, StateKey } from "../constants";
-import { Icon } from "@phosphor-icons/react";
+import { STATES } from "../constants";
+import { motion, AnimatePresence } from "framer-motion";
+import type { Icon } from "@phosphor-icons/react";
 
 const containerVariants = {
 	hidden: { opacity: 0 },
@@ -24,62 +22,11 @@ const itemVariants = {
 	},
 };
 
-type IBpmData = {
-	bpm: string;
-	fingerDetected: boolean;
-};
-
 export default function HealthCheck() {
-	const [currentState, setCurrentState] = useState<StateKey>("PULSE");
-	const [stabilityTime, setStabilityTime] = useState(0); // Track stable connection time
-	const [bpmData, setBpmData] = useState<null | IBpmData>(null); // Stores BPM or other sensor data
-	const navigate = useNavigate();
-	const MAX_STABILITY_TIME = 7; // 7 seconds for full stability
+	const MAX_STABILITY_TIME = 7;
 
-	useEffect(() => {
-		// Create socket connection
-		const socket = io("http://localhost:3000", {
-			transports: ["websocket"],
-			reconnection: true,
-			reconnectionAttempts: 5,
-			reconnectionDelay: 1000,
-		});
-
-		let lastDataReceivedTime = Date.now(); // Track the last time data was received
-		const updateStability = () => {
-			// Gradually decrease stability time when no data is received
-			if (Date.now() - lastDataReceivedTime > 1000) {
-				setStabilityTime((prev) => Math.max(prev - 1, 0));
-			}
-		};
-
-		const interval = setInterval(updateStability, 1000);
-
-		// Listen for heartbeat data
-		socket.on("heartbeat", (data) => {
-			lastDataReceivedTime = Date.now(); // Update the last data received time
-			setBpmData(data); // Update BPM or sensor data
-			setStabilityTime((prev) => Math.min(prev + 1, MAX_STABILITY_TIME)); // Increment stability time
-		});
-
-		// Cleanup on component unmount
-		return () => {
-			socket.disconnect();
-			clearInterval(interval);
-		};
-	}, []);
-
-	const handleComplete = useCallback(() => {
-		const sequence: StateKey[] = ["PULSE", "TEMPERATURE", "ALCOHOL"];
-		const currentIndex = sequence.indexOf(currentState);
-
-		if (currentIndex < sequence.length - 1) {
-			setCurrentState(sequence[currentIndex + 1]);
-			setStabilityTime(0); // Reset stability time for the next state
-		} else {
-			navigate("/complete-authentication", { state: { success: true } });
-		}
-	}, [currentState, navigate]);
+	const { currentState, stabilityTime, bpmData, handleComplete } =
+		useHealthCheck();
 
 	const state = STATES[currentState] as {
 		title: string;
