@@ -27,9 +27,11 @@ export default function FaceIdentification() {
 
 		setupCamera();
 
+		const currentVideo = videoRef.current;
+
 		return () => {
-			if (videoRef.current?.srcObject) {
-				const videoStream = videoRef.current.srcObject as MediaStream;
+			if (currentVideo?.srcObject) {
+				const videoStream = currentVideo.srcObject as MediaStream;
 				videoStream
 					.getTracks()
 					.forEach((track: MediaStreamTrack) => track.stop());
