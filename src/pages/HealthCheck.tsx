@@ -25,8 +25,14 @@ const itemVariants = {
 export default function HealthCheck() {
 	const MAX_STABILITY_TIME = 7;
 
-	const { currentState, stabilityTime, bpmData, handleComplete } =
-		useHealthCheck();
+	const {
+		currentState,
+		stabilityTime,
+		bpmData,
+		temperatureData,
+		alcoholData,
+		handleComplete,
+	} = useHealthCheck();
 
 	const state = STATES[currentState] as {
 		title: string;
@@ -35,6 +41,15 @@ export default function HealthCheck() {
 		value: string;
 		unit: string;
 	};
+
+	let displayValue = state.value; // Default value
+	if (currentState === "PULSE" && bpmData) {
+		displayValue = `${bpmData.bpm}`;
+	} else if (currentState === "TEMPERATURE" && temperatureData) {
+		displayValue = `${temperatureData.temperature}`;
+	} else if (currentState === "ALCOHOL" && alcoholData) {
+		displayValue = `${alcoholData.alcoholLevel}`;
+	}
 
 	return (
 		<div className="min-h-screen bg-black text-white flex flex-col">
@@ -65,13 +80,6 @@ export default function HealthCheck() {
 						>
 							{state.subtitle}
 						</motion.p>
-						{/* Display BPM or mock data */}
-						{bpmData && (
-							<div className="text-sm text-gray-300">
-								Current BPM: {bpmData?.bpm} | Finger Detected:{" "}
-								{bpmData.fingerDetected ? "Yes" : "No"}
-							</div>
-						)}
 					</motion.div>
 				</AnimatePresence>
 
@@ -79,7 +87,7 @@ export default function HealthCheck() {
 				<LoadingCircle
 					key={currentState}
 					icon={state.icon}
-					value={bpmData ? bpmData.bpm.toString() : state.value} // Show BPM or mock value
+					value={displayValue} // Show BPM or mock value
 					unit={state.unit}
 					progress={(stabilityTime / MAX_STABILITY_TIME) * 100} // Progress in percentage
 					onComplete={handleComplete}

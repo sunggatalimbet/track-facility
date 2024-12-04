@@ -11,7 +11,12 @@ export const useHealthCheck = () => {
 	const [stabilityTime, setStabilityTime] = useState(0);
 	const [bpmData, setBpmData] = useState<null | {
 		bpm: string;
-		fingerDetected: boolean;
+	}>(null);
+	const [temperatureData, setTemperatureData] = useState<null | {
+		temperature: string;
+	}>(null);
+	const [alcoholData, setAlcoholData] = useState<null | {
+		alcoholLevel: string;
 	}>(null);
 
 	useEffect(() => {
@@ -33,16 +38,40 @@ export const useHealthCheck = () => {
 		const interval = setInterval(updateStability, 1000);
 
 		socket.on("heartbeat", (data) => {
-			lastDataReceivedTime = Date.now();
-			setBpmData(data);
-			setStabilityTime((prev) => Math.min(prev + 1, MAX_STABILITY_TIME));
+			if (currentState === "PULSE") {
+				lastDataReceivedTime = Date.now();
+				setBpmData(data);
+				setStabilityTime((prev) =>
+					Math.min(prev + 1, MAX_STABILITY_TIME),
+				);
+			}
+		});
+
+		socket.on("temperature", (data) => {
+			if (currentState === "TEMPERATURE") {
+				lastDataReceivedTime = Date.now();
+				setTemperatureData(data);
+				setStabilityTime((prev) =>
+					Math.min(prev + 1, MAX_STABILITY_TIME),
+				);
+			}
+		});
+
+		socket.on("alcohol", (data) => {
+			if (currentState === "ALCOHOL") {
+				lastDataReceivedTime = Date.now();
+				setAlcoholData(data);
+				setStabilityTime((prev) =>
+					Math.min(prev + 1, MAX_STABILITY_TIME),
+				);
+			}
 		});
 
 		return () => {
 			socket.disconnect();
 			clearInterval(interval);
 		};
-	}, []);
+	}, [currentState]);
 
 	const handleComplete = useCallback(() => {
 		const sequence: StateKey[] = ["PULSE", "TEMPERATURE", "ALCOHOL"];
@@ -62,6 +91,8 @@ export const useHealthCheck = () => {
 		currentState,
 		stabilityTime,
 		bpmData,
+		temperatureData,
+		alcoholData,
 		handleComplete,
 		setCurrentState,
 	};
