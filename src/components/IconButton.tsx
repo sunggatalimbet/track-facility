@@ -1,11 +1,9 @@
-import React from "react";
-import { motion } from "framer-motion";
+import { motion, HTMLMotionProps } from "framer-motion";
 import { Icon } from "@phosphor-icons/react";
 
 type IconButtonProps = {
 	icon: Icon;
-	props: any;
-};
+} & HTMLMotionProps<"div">;
 
 export default function IconButton({ icon: Icon, ...props }: IconButtonProps) {
 	return (
