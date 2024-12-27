@@ -20,7 +20,7 @@ export const useHealthCheck = () => {
 	}>(null);
 
 	useEffect(() => {
-		const socket = io("http://localhost:3000", {
+		const socket = io("http://localhost:3001", {
 			transports: ["websocket"],
 			reconnection: true,
 			reconnectionAttempts: 5,

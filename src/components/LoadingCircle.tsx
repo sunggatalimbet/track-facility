@@ -3,13 +3,17 @@ import { motion } from "framer-motion";
 import { Icon } from "@phosphor-icons/react";
 
 const circleVariants = {
-	hidden: { pathLength: 0, opacity: 0 },
 	visible: (progress: number) => ({
-		pathLength: progress / 100, // Map progress to path length
+		pathLength: progress / 100,
 		opacity: 1,
 		transition: {
-			pathLength: { type: "spring", duration: 0.5 },
-			opacity: { duration: 0.01 },
+			pathLength: {
+				type: "spring",
+				stiffness: 100,
+				damping: 20,
+				duration: 1,
+			},
+			opacity: { duration: 0.3 },
 		},
 	}),
 };
@@ -31,7 +35,7 @@ const LoadingCircle = ({
 }: LoadingCircleProps) => {
 	useEffect(() => {
 		if (progress >= 100) {
-			setTimeout(onComplete, 500); // Trigger completion if fully loaded
+			setTimeout(onComplete, 500);
 		}
 	}, [progress, onComplete]);
 
@@ -55,7 +59,7 @@ const LoadingCircle = ({
 					strokeWidth="5"
 					variants={circleVariants}
 					custom={progress}
-					initial="hidden"
+					initial={{ pathLength: 0, opacity: 0 }}
 					animate="visible"
 					style={{ rotate: -90 }}
 				/>
