@@ -20,7 +20,7 @@ export const useHealthCheck = () => {
 	}>(null);
 
 	useEffect(() => {
-		const socket = io(process.env.SERVER_URL, {
+		const socket = io(import.meta.env.VITE_SERVER_URL, {
 			transports: ["websocket"],
 			reconnection: true,
 			reconnectionAttempts: 5,
