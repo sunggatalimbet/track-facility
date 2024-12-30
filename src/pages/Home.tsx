@@ -19,12 +19,8 @@ function Home() {
 
 	return (
 		<div className="w-full min-h-screen bg-black text-white flex self-center flex-col">
-			<div className="h-12 w-12">
-				<img
-					src="/placeholder-logo.svg"
-					alt="Logo"
-					className="w-full h-full"
-				/>
+			<div className="h-24 w-24">
+				<img src="/logo.jpg" alt="Logo" className="w-full h-full" />
 			</div>
 
 			<div className="flex-1 flex flex-col items-center justify-center">
