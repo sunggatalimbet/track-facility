@@ -73,6 +73,7 @@ export default function FaceIdentification() {
 						autoPlay
 						playsInline
 						muted
+						style={{ transform: "scaleX(-1)" }} // Flip horizontally
 					/>
 				</motion.div>
 			</div>
