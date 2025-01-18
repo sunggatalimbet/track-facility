@@ -19,6 +19,7 @@ export default function FaceIdentification() {
 
 	const handleError = useCallback((errorMessage: string) => {
 		setError(errorMessage);
+		console.log(consecutiveErrors);
 		setConsecutiveErrors((prev) => {
 			const newCount = prev + 1;
 			if (newCount >= ERROR_LIMIT) {
@@ -41,7 +42,7 @@ export default function FaceIdentification() {
 			try {
 				setIsProcessing(true);
 				const response = await fetch(
-					"http://localhost:3001/api/verify-face",
+					`${import.meta.env.VITE_SERVER_URL}/api/verify-face`,
 					{
 						method: "POST",
 						headers: {
