@@ -56,6 +56,7 @@ export default function FaceIdentification() {
 
 				if (data.matched) {
 					setConsecutiveErrors(0);
+					localStorage.setItem("faceId", data.faceId);
 					navigate("/health-check");
 				} else if (data.error === "No face detected in image") {
 					handleError(

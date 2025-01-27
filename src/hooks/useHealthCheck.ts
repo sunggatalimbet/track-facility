@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { io } from "socket.io-client";
+import { io, type Socket } from "socket.io-client";
 import { StateKey } from "../constants";
 
 const MAX_STABILITY_TIME = 7; // 7 seconds for full stability
@@ -9,9 +9,7 @@ export const useHealthCheck = () => {
 	const navigate = useNavigate();
 	const [currentState, setCurrentState] = useState<StateKey>("PULSE");
 	const [stabilityTime, setStabilityTime] = useState(0);
-	const [bpmData, setBpmData] = useState<null | {
-		bpm: string;
-	}>(null);
+	const [bpmData, setBpmData] = useState<null | { bpm: string }>(null);
 	const [temperatureData, setTemperatureData] = useState<null | {
 		temperature: string;
 	}>(null);
@@ -19,8 +17,12 @@ export const useHealthCheck = () => {
 		alcoholLevel: string;
 	}>(null);
 
+	// Add refs to track submission status
+	const isSubmitting = useRef(false);
+	const socketRef = useRef<Socket | null>(null);
+
 	useEffect(() => {
-		const socket = io(import.meta.env.VITE_SERVER_URL, {
+		socketRef.current = io(import.meta.env.VITE_SERVER_URL, {
 			transports: ["websocket"],
 			reconnection: true,
 			reconnectionAttempts: 5,
@@ -37,7 +39,7 @@ export const useHealthCheck = () => {
 
 		const interval = setInterval(updateStability, 1000);
 
-		socket.on("heartbeat", (data) => {
+		socketRef.current.on("heartbeat", (data) => {
 			if (currentState === "PULSE") {
 				lastDataReceivedTime = Date.now();
 				setBpmData(data);
@@ -47,7 +49,7 @@ export const useHealthCheck = () => {
 			}
 		});
 
-		socket.on("temperature", (data) => {
+		socketRef.current.on("temperature", (data) => {
 			if (currentState === "TEMPERATURE") {
 				lastDataReceivedTime = Date.now();
 				setTemperatureData(data);
@@ -57,7 +59,7 @@ export const useHealthCheck = () => {
 			}
 		});
 
-		socket.on("alcohol", (data) => {
+		socketRef.current.on("alcohol", (data) => {
 			if (currentState === "ALCOHOL") {
 				lastDataReceivedTime = Date.now();
 				setAlcoholData(data);
@@ -68,24 +70,80 @@ export const useHealthCheck = () => {
 		});
 
 		return () => {
-			socket.disconnect();
+			if (socketRef.current) {
+				socketRef.current.disconnect();
+			}
 			clearInterval(interval);
 		};
 	}, [currentState]);
 
-	const handleComplete = useCallback(() => {
+	const handleComplete = useCallback(async () => {
 		const sequence: StateKey[] = ["PULSE", "TEMPERATURE", "ALCOHOL"];
 		const currentIndex = sequence.indexOf(currentState);
 
 		if (currentIndex < sequence.length - 1) {
 			setCurrentState(sequence[currentIndex + 1]);
 			setStabilityTime(0);
-		} else {
+			return;
+		}
+
+		// Prevent duplicate submissions
+		if (isSubmitting.current) {
+			return;
+		}
+
+		isSubmitting.current = true;
+
+		const faceId = localStorage.getItem("faceId");
+
+		try {
+			// Disconnect socket before sending data to prevent any race conditions
+			if (socketRef.current) {
+				socketRef.current.disconnect();
+			}
+
+			const response = await fetch(
+				`${import.meta.env.VITE_SERVER_URL}/health`,
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						bpmData,
+						temperatureData,
+						alcoholData,
+						faceId,
+					}),
+				},
+			);
+
+			if (bpmData && temperatureData && alcoholData) {
+				localStorage.setItem(
+					"results",
+					JSON.stringify({
+						pulse: bpmData.bpm,
+						temperature: temperatureData.temperature,
+						alcohol: alcoholData.alcoholLevel,
+					}),
+				);
+			}
+
+			if (!response.ok) {
+				throw new Error("Something went wrong.");
+			}
+
+			const responseData = await response.json();
+			console.log("Data sent successfully:", responseData);
+
 			navigate("/complete-authentication", {
 				state: { success: true },
 			});
+		} catch (error) {
+			console.error("Error sending data:", error);
+			isSubmitting.current = false; // Reset submission flag on error
 		}
-	}, [currentState, navigate]);
+	}, [currentState, navigate, bpmData, temperatureData, alcoholData]);
 
 	return {
 		currentState,

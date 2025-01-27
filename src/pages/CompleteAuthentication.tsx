@@ -14,10 +14,12 @@ export default function CompleteAuthentication() {
 	const location = useLocation();
 	const [isSuccess, setIsSuccess] = useState(location.state?.success ?? true);
 
+	const results = JSON.parse(localStorage.getItem("results") || "{}");
+
 	const stats = [
-		{ icon: Heart, value: "90", unit: "уд/м" },
-		{ icon: Thermometer, value: "39", unit: "°C" },
-		{ icon: Wine, value: "трезвый", unit: "" },
+		{ icon: Heart, value: results.pulse || "0", unit: "уд/м" },
+		{ icon: Thermometer, value: results.temperature || "0", unit: "°C" },
+		{ icon: Wine, value: results.alcohol || "н/a", unit: "" },
 	];
 
 	return (
