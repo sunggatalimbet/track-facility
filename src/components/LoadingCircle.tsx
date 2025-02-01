@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Icon } from "@phosphor-icons/react";
+import { LoadingSpinner } from "./LoadingSpinner";
 
 const circleVariants = {
 	visible: (progress: number) => ({
@@ -20,7 +21,7 @@ const circleVariants = {
 
 type LoadingCircleProps = {
 	icon: Icon;
-	value: string;
+	value: string | number | null;
 	unit: string;
 	progress: number;
 	onComplete: () => void;
@@ -69,8 +70,16 @@ const LoadingCircle = ({
 					weight="bold"
 					className="w-10 h-10 md:w-12 md:h-12 mb-2"
 				/>
-				<span className="text-3xl md:text-4xl font-bold">{value}</span>
-				<span className="text-sm md:text-base">{unit}</span>
+				{typeof value === "number" ? (
+					<>
+						<span className="text-3xl md:text-4xl font-bold">
+							{value}
+						</span>
+						<span className="text-sm md:text-base">{unit}</span>
+					</>
+				) : (
+					<LoadingSpinner />
+				)}
 			</div>
 		</motion.div>
 	);

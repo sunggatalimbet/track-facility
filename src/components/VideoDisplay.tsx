@@ -1,15 +1,12 @@
 import { forwardRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { ErrorOverlay } from "./ErrorOverlay";
+import { motion } from "framer-motion";
 
 interface VideoDisplayProps {
 	isProcessing: boolean;
-	showErrorOverlay: boolean;
-	errorMessage: string;
 }
 
 export const VideoDisplay = forwardRef<HTMLVideoElement, VideoDisplayProps>(
-	({ isProcessing, showErrorOverlay, errorMessage }, videoRef) => {
+	({ isProcessing }, videoRef) => {
 		return (
 			<motion.div
 				className="w-full aspect-[3/4] max-w-md border-2 border-[#5096FF] rounded-3xl overflow-hidden relative"
@@ -31,12 +28,6 @@ export const VideoDisplay = forwardRef<HTMLVideoElement, VideoDisplayProps>(
 						<div className="w-8 h-8 border-t-2 border-[#5096FF] rounded-full animate-spin" />
 					</div>
 				)}
-
-				<AnimatePresence>
-					{showErrorOverlay && (
-						<ErrorOverlay message={errorMessage} />
-					)}
-				</AnimatePresence>
 			</motion.div>
 		);
 	},

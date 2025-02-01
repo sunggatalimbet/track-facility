@@ -1,38 +1,48 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import Header from "../components/Header";
 import { VideoDisplay } from "../components/VideoDisplay";
 import { useCamera } from "../hooks/useCamera";
-
-const ERROR_LIMIT = 5;
-const BLOCK_DURATION = 30000; // 30 seconds block
-const OVERLAY_DURATION = 5000; // 5 seconds overlay display
+import toast from "react-hot-toast";
 
 export default function FaceIdentification() {
+	const hasShownError = useRef(false);
 	const [isProcessing, setIsProcessing] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const [consecutiveErrors, setConsecutiveErrors] = useState(0);
-	const [isBlocked, setIsBlocked] = useState(false);
-	const [showErrorOverlay, setShowErrorOverlay] = useState(false);
+	const [, setConsecutiveErrors] = useState(0);
 	const navigate = useNavigate();
 
-	const handleError = useCallback((errorMessage: string) => {
-		setError(errorMessage);
-		console.log(consecutiveErrors);
-		setConsecutiveErrors((prev) => {
-			const newCount = prev + 1;
-			if (newCount >= ERROR_LIMIT) {
-				setShowErrorOverlay(true);
-				setIsBlocked(true);
-				setTimeout(() => {
-					setIsBlocked(false);
-					setConsecutiveErrors(0);
-				}, BLOCK_DURATION);
-				return 0;
-			}
-			return newCount;
-		});
+	const handleError = useCallback(
+		(errorMessage: string) => {
+			if (hasShownError.current) return;
+
+			setError(errorMessage);
+			setConsecutiveErrors((prev) => {
+				const newCount = prev + 1;
+				if (newCount >= 3) {
+					hasShownError.current = true;
+					toast.error(error, {
+						duration: 3000,
+						style: {
+							background: "#272727",
+							color: "#fff",
+							borderRadius: "8px",
+						},
+					});
+					navigate("/");
+				}
+				return newCount;
+			});
+		},
+		[navigate, error],
+	);
+
+	useEffect(() => {
+		hasShownError.current = false;
+		return () => {
+			hasShownError.current = false;
+		};
 	}, []);
 
 	const handleFrame = useCallback(
@@ -62,14 +72,14 @@ export default function FaceIdentification() {
 					handleError(
 						"Лицо не обнаружено в кадре. Пожалуйста, убедитесь, что ваше лицо находится в центре кадра и хорошо освещено.",
 					);
-				} else if (!data.matched) {
+				} else {
 					handleError(
-						"Не удалось подтвердить личность. Пожалуйста, убедитесь, что вы зарегистрированный пользователь.",
+						"Не удалось подтвердить личность. Пожалуйста, убедитесь, что вы зарегистрированный пользователь или свяжитесь с администрацией.",
 					);
 				}
 			} catch (err) {
 				handleError(
-					"Ошибка при проверке лица. Пожалуйста, попробуйте снова.",
+					"Ошибка при проверке лица. Пожалуйста, попробуйте снова или свяжитесь с администрацией.",
 				);
 				console.error("Error verifying face:", err);
 			} finally {
@@ -85,32 +95,11 @@ export default function FaceIdentification() {
 		error: cameraError,
 	} = useCamera({
 		onFrame: handleFrame,
-		isBlocked,
 	});
-
-	// Reset error overlay after duration
-	useEffect(() => {
-		let timeoutId: number;
-		if (showErrorOverlay) {
-			timeoutId = window.setTimeout(() => {
-				setShowErrorOverlay(false);
-			}, OVERLAY_DURATION);
-		}
-		return () => {
-			if (timeoutId) {
-				clearTimeout(timeoutId);
-			}
-		};
-	}, [showErrorOverlay]);
 
 	const errorMessage = isProcessing
 		? "Проверка..."
-		: isBlocked
-		? "Проверка временно заблокирована. Пожалуйста, подождите."
 		: cameraError || error || "Сканируйте своё лицо для подтверждения";
-
-	const errorOverlayMessage =
-		"Превышено количество попыток идентификации. Система будет заблокирована на 30 секунд. Пожалуйста, убедитесь, что вы находитесь в хорошо освещенном месте и ваше лицо четко видно в камере.";
 
 	return (
 		<div className="min-h-screen bg-black text-white flex flex-col">
@@ -134,12 +123,7 @@ export default function FaceIdentification() {
 					{errorMessage}
 				</motion.p>
 
-				<VideoDisplay
-					ref={videoRef}
-					isProcessing={isProcessing}
-					showErrorOverlay={showErrorOverlay}
-					errorMessage={errorOverlayMessage}
-				/>
+				<VideoDisplay ref={videoRef} isProcessing={isProcessing} />
 
 				<canvas ref={canvasRef} style={{ display: "none" }} />
 			</div>

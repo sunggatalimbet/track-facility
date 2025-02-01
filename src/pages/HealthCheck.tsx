@@ -31,6 +31,7 @@ export default function HealthCheck() {
 		bpmData,
 		temperatureData,
 		alcoholData,
+		secondsLeft,
 		handleComplete,
 	} = useHealthCheck();
 
@@ -42,13 +43,13 @@ export default function HealthCheck() {
 		unit: string;
 	};
 
-	let displayValue = state.value; // Default value
+	let displayValue: string | number | null = null;
 	if (currentState === "PULSE" && bpmData) {
-		displayValue = `${bpmData.bpm}`;
+		displayValue = Number(bpmData.bpm);
 	} else if (currentState === "TEMPERATURE" && temperatureData) {
-		displayValue = `${temperatureData.temperature}`;
+		displayValue = Number(temperatureData.temperature);
 	} else if (currentState === "ALCOHOL" && alcoholData) {
-		displayValue = `${alcoholData.alcoholLevel}`;
+		displayValue = Number(alcoholData.alcoholLevel);
 	}
 
 	return (
@@ -83,15 +84,28 @@ export default function HealthCheck() {
 					</motion.div>
 				</AnimatePresence>
 
-				{/* LoadingCircle with Background Progress */}
-				<LoadingCircle
-					key={currentState}
-					icon={state.icon}
-					value={displayValue} // Show BPM or mock value
-					unit={state.unit}
-					progress={(stabilityTime / MAX_STABILITY_TIME) * 100} // Progress in percentage
-					onComplete={handleComplete}
-				/>
+				{/* Wrap LoadingCircle and seconds text in a container */}
+				<div className="flex flex-col items-center gap-4">
+					<LoadingCircle
+						key={currentState}
+						icon={state.icon}
+						value={displayValue ?? "loading"}
+						unit={state.unit}
+						progress={(stabilityTime / MAX_STABILITY_TIME) * 100}
+						onComplete={handleComplete}
+					/>
+					{!displayValue && (
+						<span className="text-sm text-gray-400">
+							{`Осталось ${secondsLeft} ${
+								secondsLeft === 1
+									? "секунда"
+									: secondsLeft > 1 && secondsLeft < 5
+									? "секунды"
+									: "секунд"
+							}`}
+						</span>
+					)}
+				</div>
 
 				<motion.div
 					className="fixed bottom-8 left-0 right-0 flex justify-center gap-4 px-6"

@@ -4,6 +4,9 @@ interface ErrorOverlayProps {
 	message: string;
 }
 
+// remove 30 error overlay
+// add 3 tries to register
+// if no data from socket 15 seconds navigate user to the home page.
 export const ErrorOverlay = ({ message }: ErrorOverlayProps) => {
 	return (
 		<motion.div

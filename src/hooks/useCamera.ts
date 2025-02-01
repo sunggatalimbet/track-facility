@@ -2,17 +2,16 @@ import { useState, useEffect, useRef, useCallback } from "react";
 
 interface UseCameraProps {
 	onFrame: (imageData: string) => Promise<void>;
-	isBlocked: boolean;
 }
 
-export const useCamera = ({ onFrame, isBlocked }: UseCameraProps) => {
+export const useCamera = ({ onFrame }: UseCameraProps) => {
 	const videoRef = useRef<HTMLVideoElement | null>(null);
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
 	const intervalRef = useRef<number | null>(null);
 	const [error, setError] = useState<string | null>(null);
 
 	const captureFrame = useCallback(async () => {
-		if (!canvasRef.current || !videoRef.current || isBlocked) return;
+		if (!canvasRef.current || !videoRef.current) return;
 
 		const canvas = canvasRef.current;
 		const video = videoRef.current;
@@ -27,7 +26,7 @@ export const useCamera = ({ onFrame, isBlocked }: UseCameraProps) => {
 		const imageData = canvas.toDataURL("image/jpeg", 0.6);
 
 		await onFrame(imageData);
-	}, [isBlocked, onFrame]);
+	}, [onFrame]);
 
 	useEffect(() => {
 		let mounted = true;
