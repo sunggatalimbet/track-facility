@@ -30,6 +30,7 @@ export const useCamera = ({ onFrame }: UseCameraProps) => {
 
 	useEffect(() => {
 		let mounted = true;
+		const currentVideoRef = videoRef.current;
 
 		async function setupCamera() {
 			try {
@@ -41,8 +42,8 @@ export const useCamera = ({ onFrame }: UseCameraProps) => {
 					},
 				});
 
-				if (videoRef.current && mounted) {
-					videoRef.current.srcObject = stream;
+				if (currentVideoRef && mounted) {
+					currentVideoRef.srcObject = stream;
 				}
 
 				if (mounted) {
@@ -68,8 +69,8 @@ export const useCamera = ({ onFrame }: UseCameraProps) => {
 			if (intervalRef.current) {
 				clearInterval(intervalRef.current);
 			}
-			if (videoRef.current?.srcObject) {
-				const videoStream = videoRef.current.srcObject as MediaStream;
+			if (currentVideoRef?.srcObject) {
+				const videoStream = currentVideoRef.srcObject as MediaStream;
 				videoStream
 					.getTracks()
 					.forEach((track: MediaStreamTrack) => track.stop());
