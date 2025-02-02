@@ -51,7 +51,7 @@ export default function HealthCheck() {
 	if (currentState === "TEMPERATURE" && temperatureData) {
 		displayValue = Number(temperatureData.temperature);
 	} else if (currentState === "ALCOHOL" && alcoholData) {
-		displayValue = Number(alcoholData.alcoholLevel);
+		displayValue = alcoholData.alcoholLevel;
 	}
 
 	return (
