@@ -1,9 +1,4 @@
-import {
-	useState,
-	useEffect,
-	useRef,
-	// useCallback
-} from "react";
+import { useState, useEffect, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 
 interface UseCameraProps {
@@ -11,7 +6,7 @@ interface UseCameraProps {
 }
 
 export const useCamera = ({ onFrame }: UseCameraProps) => {
-	// const videoRef = useRef<HTMLVideoElement | null>(null);
+	const videoRef = useRef<HTMLVideoElement | null>(null);
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
 	const socketRef = useRef<Socket | null>(null);
 	const [error, setError] = useState<string | null>(null);
@@ -22,7 +17,6 @@ export const useCamera = ({ onFrame }: UseCameraProps) => {
 
 		async function setupCamera() {
 			try {
-				// Подключаемся к WebSocket
 				const socket = io(import.meta.env.VITE_SERVER_URL);
 				socketRef.current = socket;
 
@@ -67,7 +61,7 @@ export const useCamera = ({ onFrame }: UseCameraProps) => {
 	}, [onFrame]);
 
 	return {
-		videoRef: null,
+		videoRef,
 		canvasRef,
 		error,
 		isRpiCamera: true,
