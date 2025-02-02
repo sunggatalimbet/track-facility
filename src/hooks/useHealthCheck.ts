@@ -9,9 +9,9 @@ const SOCKET_TIMEOUT = 15000; // 15 seconds timeout
 
 export const useHealthCheck = () => {
 	const navigate = useNavigate();
-	const [currentState, setCurrentState] = useState<StateKey>("PULSE");
+	const [currentState, setCurrentState] = useState<StateKey>("TEMPERATURE");
 	const [stabilityTime, setStabilityTime] = useState(0);
-	const [bpmData, setBpmData] = useState<null | { bpm: string }>(null);
+	//const [bpmData, setBpmData] = useState<null | { bpm: string }>(null);
 	const [temperatureData, setTemperatureData] = useState<null | {
 		temperature: string;
 	}>(null);
@@ -74,16 +74,16 @@ export const useHealthCheck = () => {
 			timeoutRef.current = setTimeout(handleTimeout, SOCKET_TIMEOUT);
 		};
 
-		socketRef.current.on("heartbeat", (data) => {
-			if (currentState === "PULSE") {
-				lastDataReceivedTime = Date.now();
-				setBpmData(data);
-				setStabilityTime((prev) =>
-					Math.min(prev + 1, MAX_STABILITY_TIME),
-				);
-				resetTimeout();
-			}
-		});
+		// socketRef.current.on("heartbeat", (data) => {
+		// 	if (currentState === "PULSE") {
+		// 		lastDataReceivedTime = Date.now();
+		// 		setBpmData(data);
+		// 		setStabilityTime((prev) =>
+		// 			Math.min(prev + 1, MAX_STABILITY_TIME),
+		// 		);
+		// 		resetTimeout();
+		// 	}
+		// });
 
 		socketRef.current.on("temperature", (data) => {
 			if (currentState === "TEMPERATURE") {
@@ -147,7 +147,11 @@ export const useHealthCheck = () => {
 	}, [currentState, handleTimeout]);
 
 	const handleComplete = useCallback(async () => {
-		const sequence: StateKey[] = ["PULSE", "TEMPERATURE", "ALCOHOL"];
+		const sequence: StateKey[] = [
+			// "PULSE",
+			"TEMPERATURE",
+			"ALCOHOL",
+		];
 		const currentIndex = sequence.indexOf(currentState);
 
 		if (currentIndex < sequence.length - 1) {
@@ -179,7 +183,7 @@ export const useHealthCheck = () => {
 						"Content-Type": "application/json",
 					},
 					body: JSON.stringify({
-						bpmData,
+						// bpmData,
 						temperatureData,
 						alcoholData,
 						faceId,
@@ -187,11 +191,16 @@ export const useHealthCheck = () => {
 				},
 			);
 
-			if (bpmData && temperatureData && alcoholData) {
+			if (
+				// bpmData
+				// &&
+				temperatureData &&
+				alcoholData
+			) {
 				localStorage.setItem(
 					"results",
 					JSON.stringify({
-						pulse: bpmData.bpm,
+						// pulse: bpmData.bpm,
 						temperature: temperatureData.temperature,
 						alcohol: alcoholData.alcoholLevel,
 					}),
@@ -212,12 +221,18 @@ export const useHealthCheck = () => {
 			console.error("Error sending data:", error);
 			isSubmitting.current = false; // Reset submission flag on error
 		}
-	}, [currentState, navigate, bpmData, temperatureData, alcoholData]);
+	}, [
+		currentState,
+		navigate,
+		// bpmData,
+		temperatureData,
+		alcoholData,
+	]);
 
 	return {
 		currentState,
 		stabilityTime,
-		bpmData,
+		// bpmData,
 		temperatureData,
 		alcoholData,
 		handleComplete,
