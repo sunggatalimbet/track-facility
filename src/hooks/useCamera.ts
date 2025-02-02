@@ -18,13 +18,11 @@ export const useCamera = ({ onFrame }: UseCameraProps) => {
 
 		canvas.width = 640;
 		canvas.height = 480;
-
 		const context = canvas.getContext("2d");
 		if (!context) return;
 
 		context.drawImage(video, 0, 0, canvas.width, canvas.height);
-		const imageData = canvas.toDataURL("image/jpeg", 0.6);
-
+		const imageData = canvas.toDataURL("image/jpeg", 0.8);
 		await onFrame(imageData);
 	}, [onFrame]);
 
@@ -34,47 +32,93 @@ export const useCamera = ({ onFrame }: UseCameraProps) => {
 
 		async function setupCamera() {
 			try {
-				console.log("Попытка доступа к камере...");
+				console.log("Инициализация камеры...");
+
+				// Получаем список всех доступных устройств
 				const devices = await navigator.mediaDevices.enumerateDevices();
-				console.log("Доступные устройства:", devices);
-
-				const stream = await navigator.mediaDevices.getUserMedia({
-					video: {
-						facingMode: "user",
-						width: { ideal: 640 },
-						height: { ideal: 480 },
-					},
-				});
-
-				console.log(
-					"Получен поток с камеры:",
-					stream.getVideoTracks()[0].label,
+				const videoDevices = devices.filter(
+					(device) => device.kind === "videoinput",
 				);
+				console.log("Найденные камеры:", videoDevices);
+
+				// Пробуем разные конфигурации камеры
+				const constraints = [
+					// Сначала пробуем заднюю камеру
+					{
+						video: {
+							facingMode: "environment",
+							width: { ideal: 640 },
+							height: { ideal: 480 },
+							frameRate: { ideal: 30 },
+							// Дополнительные настройки для лучшей совместимости
+							aspectRatio: { ideal: 1.333333 }, // 4:3
+							resizeMode: "crop-and-scale",
+						},
+					},
+					// Затем пробуем первую доступную камеру
+					{
+						video: {
+							deviceId: videoDevices[0]?.deviceId
+								? { exact: videoDevices[0].deviceId }
+								: undefined,
+							width: { ideal: 640 },
+							height: { ideal: 480 },
+						},
+					},
+					// В крайнем случае, любую камеру
+					{
+						video: true,
+					},
+				];
+
+				let stream: MediaStream | null = null;
+				let error: Error | null = null;
+
+				// Пробуем каждую конфигурацию по очереди
+				for (const constraint of constraints) {
+					try {
+						stream = await navigator.mediaDevices.getUserMedia(
+							constraint,
+						);
+						console.log(
+							"Успешно подключена камера с настройками:",
+							constraint,
+						);
+						break;
+					} catch (e) {
+						error = e as Error;
+						console.log(
+							"Не удалось подключить камеру с настройками:",
+							constraint,
+						);
+					}
+				}
+
+				if (!stream) {
+					throw error || new Error("Не удалось подключить камеру");
+				}
 
 				if (currentVideoRef && mounted) {
 					currentVideoRef.srcObject = stream;
-				}
+					await new Promise((resolve) => {
+						if (currentVideoRef) {
+							currentVideoRef.onloadedmetadata = resolve;
+						}
+					});
 
-				if (mounted) {
-					intervalRef.current = window.setInterval(
-						captureFrame,
-						1000,
-					);
+					// Начинаем захват только после полной загрузки видео
+					if (mounted) {
+						intervalRef.current = window.setInterval(
+							captureFrame,
+							1000,
+						);
+					}
 				}
 			} catch (err) {
 				if (mounted) {
-					const errorMessage =
-						err instanceof Error ? err.message : String(err);
-					console.error("Подробная ошибка подключения камеры:", {
-						error: err,
-						message: errorMessage,
-						name:
-							err instanceof Error
-								? err.name
-								: "Неизвестная ошибка",
-					});
+					console.error("Ошибка инициализации камеры:", err);
 					setError(
-						`Ошибка доступа к камере: ${errorMessage}. Пожалуйста, проверьте разрешения.`,
+						"Не удалось получить доступ к камере. Пожалуйста, проверьте разрешения и подключение.",
 					);
 				}
 			}
@@ -88,10 +132,8 @@ export const useCamera = ({ onFrame }: UseCameraProps) => {
 				clearInterval(intervalRef.current);
 			}
 			if (currentVideoRef?.srcObject) {
-				const videoStream = currentVideoRef.srcObject as MediaStream;
-				videoStream
-					.getTracks()
-					.forEach((track: MediaStreamTrack) => track.stop());
+				const stream = currentVideoRef.srcObject as MediaStream;
+				stream.getTracks().forEach((track) => track.stop());
 			}
 		};
 	}, [captureFrame]);
