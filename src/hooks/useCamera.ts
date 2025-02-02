@@ -1,87 +1,57 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import {
+	useState,
+	useEffect,
+	useRef,
+	// useCallback
+} from "react";
+import { io, Socket } from "socket.io-client";
 
 interface UseCameraProps {
 	onFrame: (imageData: string) => Promise<void>;
 }
 
 export const useCamera = ({ onFrame }: UseCameraProps) => {
-	const videoRef = useRef<HTMLVideoElement | null>(null);
+	// const videoRef = useRef<HTMLVideoElement | null>(null);
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
-	const intervalRef = useRef<number | null>(null);
+	const socketRef = useRef<Socket | null>(null);
 	const [error, setError] = useState<string | null>(null);
-	const [useRpiCamera, setUseRpiCamera] = useState(false);
-
-	const captureFrame = useCallback(async () => {
-		if (useRpiCamera) {
-			try {
-				const response = await fetch(
-					`${import.meta.env.VITE_SERVER_URL}/api/camera/capture`,
-				);
-				const data = await response.json();
-
-				if (data.success) {
-					await onFrame(data.image);
-				}
-			} catch (err) {
-				console.error("RPi camera error:", err);
-				setError("Ошибка при получении изображения с камеры");
-			}
-			return;
-		}
-
-		if (!canvasRef.current || !videoRef.current) return;
-		const canvas = canvasRef.current;
-		const video = videoRef.current;
-
-		canvas.width = 640;
-		canvas.height = 480;
-		const context = canvas.getContext("2d");
-		if (!context) return;
-
-		context.drawImage(video, 0, 0, canvas.width, canvas.height);
-		const imageData = canvas.toDataURL("image/jpeg", 0.8);
-		await onFrame(imageData);
-	}, [onFrame, useRpiCamera]);
+	const [lastFrame, setLastFrame] = useState<string | null>(null);
 
 	useEffect(() => {
 		let mounted = true;
-		const currentVideoRef = videoRef.current;
 
 		async function setupCamera() {
 			try {
-				console.log("Инициализация камеры...");
+				// Подключаемся к WebSocket
+				const socket = io(import.meta.env.VITE_SERVER_URL);
+				socketRef.current = socket;
 
-				// Проверяем доступные устройства
-				const devices = await navigator.mediaDevices.enumerateDevices();
-				const videoDevices = devices.filter(
-					(device) => device.kind === "videoinput",
-				);
+				socket.on("connect", () => {
+					console.log("Connected to camera socket");
+					socket.emit("start-camera");
+				});
 
-				if (videoDevices.length === 0) {
-					console.log(
-						"Веб-камеры не найдены, переключаемся на RPi камеру",
-					);
-					setUseRpiCamera(true);
-					if (mounted) {
-						intervalRef.current = window.setInterval(
-							captureFrame,
-							1000,
-						);
+				socket.on("camera-frame", async (data) => {
+					if (!mounted) return;
+
+					if (data.success) {
+						setLastFrame(data.image);
+						await onFrame(data.image);
 					}
-					return;
-				}
+				});
 
-				// Остальной код для веб-камеры...
-				// ... (оставляем существующий код для веб-камеры)
+				socket.on("camera-error", (errorMessage) => {
+					if (!mounted) return;
+					console.error("Camera error:", errorMessage);
+					setError(errorMessage);
+				});
+
+				socket.on("disconnect", () => {
+					console.log("Disconnected from camera socket");
+				});
 			} catch (err) {
-				console.log("Ошибка веб-камеры, пробуем RPi камеру", err);
-				setUseRpiCamera(true);
-				if (mounted) {
-					intervalRef.current = window.setInterval(
-						captureFrame,
-						1000,
-					);
-				}
+				console.error("Error setting up camera:", err);
+				setError("Failed to connect to camera");
 			}
 		}
 
@@ -89,30 +59,18 @@ export const useCamera = ({ onFrame }: UseCameraProps) => {
 
 		return () => {
 			mounted = false;
-			if (intervalRef.current) {
-				clearInterval(intervalRef.current);
-			}
-			if (!useRpiCamera && currentVideoRef?.srcObject) {
-				const stream = currentVideoRef.srcObject as MediaStream;
-				stream.getTracks().forEach((track) => track.stop());
+			if (socketRef.current) {
+				socketRef.current.emit("stop-camera");
+				socketRef.current.disconnect();
 			}
 		};
-	}, [captureFrame, useRpiCamera]);
-
-	// Если используется RPi камера, видео элемент не нужен
-	if (useRpiCamera) {
-		return {
-			videoRef: null,
-			canvasRef,
-			error,
-			isRpiCamera: true,
-		};
-	}
+	}, [onFrame]);
 
 	return {
-		videoRef,
+		videoRef: null,
 		canvasRef,
 		error,
-		isRpiCamera: false,
+		isRpiCamera: true,
+		lastFrame,
 	};
 };
