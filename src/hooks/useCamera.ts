@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import axios from "axios";
 
 interface UseCameraProps {
 	onFrame: (imageData: string) => Promise<void>;
@@ -15,11 +14,13 @@ export const useCamera = ({ onFrame }: UseCameraProps) => {
 	const captureFrame = useCallback(async () => {
 		if (useRpiCamera) {
 			try {
-				const response = await axios.get(
+				const response = await fetch(
 					`${import.meta.env.VITE_SERVER_URL}/api/camera/capture`,
 				);
-				if (response.data.success) {
-					await onFrame(response.data.image);
+				const data = await response.json();
+
+				if (data.success) {
+					await onFrame(data.image);
 				}
 			} catch (err) {
 				console.error("RPi camera error:", err);
