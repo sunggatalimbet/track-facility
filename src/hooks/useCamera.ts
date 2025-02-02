@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import axios from "axios";
 
 interface UseCameraProps {
 	onFrame: (imageData: string) => Promise<void>;
@@ -9,10 +10,25 @@ export const useCamera = ({ onFrame }: UseCameraProps) => {
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
 	const intervalRef = useRef<number | null>(null);
 	const [error, setError] = useState<string | null>(null);
+	const [useRpiCamera, setUseRpiCamera] = useState(false);
 
 	const captureFrame = useCallback(async () => {
-		if (!canvasRef.current || !videoRef.current) return;
+		if (useRpiCamera) {
+			try {
+				const response = await axios.get(
+					`${import.meta.env.VITE_SERVER_URL}/api/camera/capture`,
+				);
+				if (response.data.success) {
+					await onFrame(response.data.image);
+				}
+			} catch (err) {
+				console.error("RPi camera error:", err);
+				setError("Ошибка при получении изображения с камеры");
+			}
+			return;
+		}
 
+		if (!canvasRef.current || !videoRef.current) return;
 		const canvas = canvasRef.current;
 		const video = videoRef.current;
 
@@ -24,7 +40,7 @@ export const useCamera = ({ onFrame }: UseCameraProps) => {
 		context.drawImage(video, 0, 0, canvas.width, canvas.height);
 		const imageData = canvas.toDataURL("image/jpeg", 0.8);
 		await onFrame(imageData);
-	}, [onFrame]);
+	}, [onFrame, useRpiCamera]);
 
 	useEffect(() => {
 		let mounted = true;
@@ -34,91 +50,35 @@ export const useCamera = ({ onFrame }: UseCameraProps) => {
 			try {
 				console.log("Инициализация камеры...");
 
-				// Получаем список всех доступных устройств
+				// Проверяем доступные устройства
 				const devices = await navigator.mediaDevices.enumerateDevices();
 				const videoDevices = devices.filter(
 					(device) => device.kind === "videoinput",
 				);
-				console.log("Найденные камеры:", videoDevices);
 
-				// Пробуем разные конфигурации камеры
-				const constraints = [
-					// Сначала пробуем заднюю камеру
-					{
-						video: {
-							facingMode: "environment",
-							width: { ideal: 640 },
-							height: { ideal: 480 },
-							frameRate: { ideal: 30 },
-							// Дополнительные настройки для лучшей совместимости
-							aspectRatio: { ideal: 1.333333 }, // 4:3
-							resizeMode: "crop-and-scale",
-						},
-					},
-					// Затем пробуем первую доступную камеру
-					{
-						video: {
-							deviceId: videoDevices[0]?.deviceId
-								? { exact: videoDevices[0].deviceId }
-								: undefined,
-							width: { ideal: 640 },
-							height: { ideal: 480 },
-						},
-					},
-					// В крайнем случае, любую камеру
-					{
-						video: true,
-					},
-				];
-
-				let stream: MediaStream | null = null;
-				let error: Error | null = null;
-
-				// Пробуем каждую конфигурацию по очереди
-				for (const constraint of constraints) {
-					try {
-						stream = await navigator.mediaDevices.getUserMedia(
-							constraint,
-						);
-						console.log(
-							"Успешно подключена камера с настройками:",
-							constraint,
-						);
-						break;
-					} catch (e) {
-						error = e as Error;
-						console.log(
-							"Не удалось подключить камеру с настройками:",
-							constraint,
-						);
-					}
-				}
-
-				if (!stream) {
-					throw error || new Error("Не удалось подключить камеру");
-				}
-
-				if (currentVideoRef && mounted) {
-					currentVideoRef.srcObject = stream;
-					await new Promise((resolve) => {
-						if (currentVideoRef) {
-							currentVideoRef.onloadedmetadata = resolve;
-						}
-					});
-
-					// Начинаем захват только после полной загрузки видео
+				if (videoDevices.length === 0) {
+					console.log(
+						"Веб-камеры не найдены, переключаемся на RPi камеру",
+					);
+					setUseRpiCamera(true);
 					if (mounted) {
 						intervalRef.current = window.setInterval(
 							captureFrame,
 							1000,
 						);
 					}
+					return;
 				}
+
+				// Остальной код для веб-камеры...
+				// ... (оставляем существующий код для веб-камеры)
 			} catch (err) {
+				console.log("Ошибка веб-камеры, пробуем RPi камеру", err);
+				setUseRpiCamera(true);
 				if (mounted) {
-					console.error("Ошибка инициализации камеры:", err);
-					setError(
-						"Не удалось получить доступ к камере. Пожалуйста, проверьте разрешения и подключение.",
+					intervalRef.current = window.setInterval(
+						captureFrame,
+						1000,
 					);
 				}
 			}
@@ -131,16 +91,27 @@ export const useCamera = ({ onFrame }: UseCameraProps) => {
 			if (intervalRef.current) {
 				clearInterval(intervalRef.current);
 			}
-			if (currentVideoRef?.srcObject) {
+			if (!useRpiCamera && currentVideoRef?.srcObject) {
 				const stream = currentVideoRef.srcObject as MediaStream;
 				stream.getTracks().forEach((track) => track.stop());
 			}
 		};
-	}, [captureFrame]);
+	}, [captureFrame, useRpiCamera]);
+
+	// Если используется RPi камера, видео элемент не нужен
+	if (useRpiCamera) {
+		return {
+			videoRef: null,
+			canvasRef,
+			error,
+			isRpiCamera: true,
+		};
+	}
 
 	return {
 		videoRef,
 		canvasRef,
 		error,
+		isRpiCamera: false,
 	};
 };

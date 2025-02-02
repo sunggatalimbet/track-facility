@@ -12,6 +12,7 @@
 	"dependencies": {
 		"@phosphor-icons/react": "^2.1.7",
 		"autoprefixer": "^10.4.20",
+		"axios": "^1.7.9",
 		"date-fns": "^4.1.0",
 		"framer-motion": "^11.13.1",
 		"postcss": "^8.4.49",
@@ -24,6 +25,7 @@
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.15.0",
+		"@types/axios": "^0.14.4",
 		"@types/node": "^22.10.2",
 		"@types/react": "^18.3.12",
 		"@types/react-dom": "^18.3.1",
