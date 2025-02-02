@@ -45,6 +45,40 @@ export default function FaceIdentification() {
 		};
 	}, []);
 
+	useEffect(() => {
+		async function checkCameraSupport() {
+			try {
+				// Check if mediaDevices is supported
+				if (
+					!navigator.mediaDevices ||
+					!navigator.mediaDevices.getUserMedia
+				) {
+					console.error("MediaDevices API not supported");
+					setError("Your browser doesn't support camera access");
+					return;
+				}
+
+				// List all media devices
+				const devices = await navigator.mediaDevices.enumerateDevices();
+				const videoDevices = devices.filter(
+					(device) => device.kind === "videoinput",
+				);
+				console.log("Available video devices:", videoDevices);
+
+				if (videoDevices.length === 0) {
+					console.error("No video devices found");
+					setError("No camera detected on your device");
+					return;
+				}
+			} catch (err) {
+				console.error("Error checking camera support:", err);
+				setError("Error accessing camera capabilities");
+			}
+		}
+
+		checkCameraSupport();
+	}, []);
+
 	const handleFrame = useCallback(
 		async (imageData: string) => {
 			if (isProcessing) return;

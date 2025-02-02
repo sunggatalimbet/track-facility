@@ -34,6 +34,10 @@ export const useCamera = ({ onFrame }: UseCameraProps) => {
 
 		async function setupCamera() {
 			try {
+				console.log("Попытка доступа к камере...");
+				const devices = await navigator.mediaDevices.enumerateDevices();
+				console.log("Доступные устройства:", devices);
+
 				const stream = await navigator.mediaDevices.getUserMedia({
 					video: {
 						facingMode: "user",
@@ -41,6 +45,11 @@ export const useCamera = ({ onFrame }: UseCameraProps) => {
 						height: { ideal: 480 },
 					},
 				});
+
+				console.log(
+					"Получен поток с камеры:",
+					stream.getVideoTracks()[0].label,
+				);
 
 				if (currentVideoRef && mounted) {
 					currentVideoRef.srcObject = stream;
@@ -54,10 +63,19 @@ export const useCamera = ({ onFrame }: UseCameraProps) => {
 				}
 			} catch (err) {
 				if (mounted) {
+					const errorMessage =
+						err instanceof Error ? err.message : String(err);
+					console.error("Подробная ошибка подключения камеры:", {
+						error: err,
+						message: errorMessage,
+						name:
+							err instanceof Error
+								? err.name
+								: "Неизвестная ошибка",
+					});
 					setError(
-						"Ошибка доступа к камере. Пожалуйста, проверьте разрешения.",
+						`Ошибка доступа к камере: ${errorMessage}. Пожалуйста, проверьте разрешения.`,
 					);
-					console.error("Error accessing camera:", err);
 				}
 			}
 		}
