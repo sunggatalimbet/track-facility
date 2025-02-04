@@ -27,7 +27,7 @@ type LoadingCircleProps = {
 	onComplete: () => void;
 };
 
-const LoadingCircle = ({
+export const LoadingCircle = ({
 	icon: Icon,
 	value,
 	unit,
@@ -84,5 +84,3 @@ const LoadingCircle = ({
 		</motion.div>
 	);
 };
-
-export default LoadingCircle;

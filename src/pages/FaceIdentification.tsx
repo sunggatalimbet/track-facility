@@ -1,13 +1,17 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import Header from "../components/Header";
+import { Header } from "../components/Header";
 import { VideoDisplay } from "../components/VideoDisplay";
-import { useCamera } from "../hooks/useCamera";
+import {
+	useDeviceCamera,
+	// useRaspberryCamera
+} from "../lib/hooks/useCamera";
 import toast from "react-hot-toast";
+import { faceRecognitionService } from "../lib/services/faceRecognitionService";
+import { ERROR_MESSAGES } from "../lib/constants";
 
 export default function FaceIdentification() {
-	const hasShownError = useRef(false);
 	const [isProcessing, setIsProcessing] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [, setConsecutiveErrors] = useState(0);
@@ -15,13 +19,10 @@ export default function FaceIdentification() {
 
 	const handleError = useCallback(
 		(errorMessage: string) => {
-			if (hasShownError.current) return;
-
 			setError(errorMessage);
 			setConsecutiveErrors((prev) => {
 				const newCount = prev + 1;
 				if (newCount >= 3) {
-					hasShownError.current = true;
 					toast.error(error, {
 						duration: 3000,
 						style: {
@@ -38,83 +39,25 @@ export default function FaceIdentification() {
 		[navigate, error],
 	);
 
-	useEffect(() => {
-		hasShownError.current = false;
-		return () => {
-			hasShownError.current = false;
-		};
-	}, []);
-
-	useEffect(() => {
-		async function checkCameraSupport() {
-			try {
-				// Check if mediaDevices is supported
-				if (
-					!navigator.mediaDevices ||
-					!navigator.mediaDevices.getUserMedia
-				) {
-					console.error("MediaDevices API not supported");
-					setError("Your browser doesn't support camera access");
-					return;
-				}
-
-				// List all media devices
-				const devices = await navigator.mediaDevices.enumerateDevices();
-				const videoDevices = devices.filter(
-					(device) => device.kind === "videoinput",
-				);
-				console.log("Available video devices:", videoDevices);
-
-				if (videoDevices.length === 0) {
-					console.error("No video devices found");
-					setError("No camera detected on your device");
-					return;
-				}
-			} catch (err) {
-				console.error("Error checking camera support:", err);
-				setError("Error accessing camera capabilities");
-			}
-		}
-
-		checkCameraSupport();
-	}, []);
-
 	const handleFrame = useCallback(
 		async (imageData: string) => {
 			if (isProcessing) return;
 
 			try {
 				setIsProcessing(true);
-				const response = await fetch(
-					`${import.meta.env.VITE_SERVER_URL}/api/verify-face`,
-					{
-						method: "POST",
-						headers: {
-							"Content-Type": "application/json",
-						},
-						body: JSON.stringify({ image: imageData }),
-					},
-				);
-
-				const data = await response.json();
+				const data = await faceRecognitionService.verifyFace(imageData);
 
 				if (data.matched) {
 					setConsecutiveErrors(0);
-					localStorage.setItem("faceId", data.faceId);
+					localStorage.setItem("faceId", data.faceId!);
 					navigate("/health-check");
 				} else if (data.error === "No face detected in image") {
-					handleError(
-						"Лицо не обнаружено в кадре. Пожалуйста, убедитесь, что ваше лицо находится в центре кадра и хорошо освещено.",
-					);
+					handleError(ERROR_MESSAGES.FACE_NOT_DETECTED);
 				} else {
-					handleError(
-						"Не удалось подтвердить личность. Пожалуйста, убедитесь, что вы зарегистрированный пользователь или свяжитесь с администрацией.",
-					);
+					handleError(ERROR_MESSAGES.FACE_NOT_MATCHED);
 				}
 			} catch (err) {
-				handleError(
-					"Ошибка при проверке лица. Пожалуйста, попробуйте снова или свяжитесь с администрацией.",
-				);
+				handleError(ERROR_MESSAGES.FACE_RECOGNITION_ERROR);
 				console.error("Error verifying face:", err);
 			} finally {
 				setIsProcessing(false);
@@ -127,7 +70,7 @@ export default function FaceIdentification() {
 		videoRef,
 		canvasRef,
 		error: cameraError,
-	} = useCamera({
+	} = useDeviceCamera({
 		onFrame: handleFrame,
 	});
 
@@ -157,9 +100,11 @@ export default function FaceIdentification() {
 					{errorMessage}
 				</motion.p>
 
-				<VideoDisplay ref={videoRef} isProcessing={isProcessing} />
-
-				<canvas ref={canvasRef} style={{ display: "none" }} />
+				<VideoDisplay
+					videoRef={videoRef}
+					canvasRef={canvasRef}
+					isProcessing={isProcessing}
+				/>
 			</div>
 		</div>
 	);

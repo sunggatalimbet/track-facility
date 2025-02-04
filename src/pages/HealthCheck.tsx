@@ -1,7 +1,7 @@
-import { useHealthCheck } from "../hooks/useHealthCheck";
-import Header from "../components/Header";
-import LoadingCircle from "../components/LoadingCircle";
-import { STATES } from "../constants";
+import { useHealthCheck } from "../lib/hooks/useHealthCheck";
+import { Header } from "../components/Header";
+import { LoadingCircle } from "../components/LoadingCircle";
+import { STATES } from "../lib/constants";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Icon } from "@phosphor-icons/react";
 
@@ -28,7 +28,7 @@ export default function HealthCheck() {
 	const {
 		currentState,
 		stabilityTime,
-		// bpmData,
+		bpmData,
 		temperatureData,
 		alcoholData,
 		secondsLeft,
@@ -44,11 +44,9 @@ export default function HealthCheck() {
 	};
 
 	let displayValue: string | number | null = null;
-	// if (currentState === "PULSE" && bpmData) {
-	// 	displayValue = Number(bpmData.bpm);
-	// } else
-
-	if (currentState === "TEMPERATURE" && temperatureData) {
+	if (currentState === "PULSE" && bpmData) {
+		displayValue = Number(bpmData.bpm);
+	} else if (currentState === "TEMPERATURE" && temperatureData) {
 		displayValue = Number(temperatureData.temperature);
 	} else if (currentState === "ALCOHOL" && alcoholData) {
 		displayValue = alcoholData.alcoholLevel;
@@ -86,7 +84,6 @@ export default function HealthCheck() {
 					</motion.div>
 				</AnimatePresence>
 
-				{/* Wrap LoadingCircle and seconds text in a container */}
 				<div className="flex flex-col items-center gap-4">
 					<LoadingCircle
 						key={currentState}

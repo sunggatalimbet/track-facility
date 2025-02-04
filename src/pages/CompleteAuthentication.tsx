@@ -7,7 +7,7 @@ import {
 	Thermometer,
 	Wine,
 } from "@phosphor-icons/react";
-import Header from "../components/Header";
+import { Header } from "../components/Header";
 import { useLocation } from "react-router-dom";
 
 export default function CompleteAuthentication() {
@@ -17,7 +17,7 @@ export default function CompleteAuthentication() {
 	const results = JSON.parse(localStorage.getItem("results") || "{}");
 
 	const stats = [
-		{ icon: Heart, value: results.pulse || "0", unit: "уд/м" },
+		{ icon: Heart, value: results.bpm || "0", unit: "уд/м" },
 		{ icon: Thermometer, value: results.temperature || "0", unit: "°C" },
 		{ icon: Wine, value: results.alcohol || "н/a", unit: "" },
 	];

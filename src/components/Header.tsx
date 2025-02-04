@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 
-export default function Header() {
+export const Header = () => {
 	const now = new Date();
 	return (
 		<div className="flex justify-between items-center">
@@ -11,4 +11,4 @@ export default function Header() {
 			</span>
 		</div>
 	);
-}
+};
