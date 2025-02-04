@@ -90,6 +90,8 @@ export const useDeviceCamera = ({ onFrame }: UseCameraProps) => {
 
 	useEffect(() => {
 		let mounted = true;
+		const currentVideo = videoRef.current; // Store ref value
+
 		async function setupCamera() {
 			try {
 				const stream = await navigator.mediaDevices.getUserMedia({
@@ -135,11 +137,10 @@ export const useDeviceCamera = ({ onFrame }: UseCameraProps) => {
 			if (intervalRef.current) {
 				clearInterval(intervalRef.current);
 			}
-			if (videoRef.current?.srcObject) {
-				const videoStream = videoRef.current.srcObject as MediaStream;
-				videoStream
-					.getTracks()
-					.forEach((track: MediaStreamTrack) => track.stop());
+			if (currentVideo?.srcObject) {
+				// Use stored ref
+				const videoStream = currentVideo.srcObject as MediaStream;
+				videoStream.getTracks().forEach((track) => track.stop());
 			}
 		};
 	}, [captureFrame]);

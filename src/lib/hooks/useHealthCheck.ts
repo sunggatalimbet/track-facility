@@ -105,7 +105,6 @@ export const useHealthCheck = (): HealthCheckState & {
 	const handleDataEvent = useCallback(
 		(data: SensorData) => {
 			if (!data) return;
-			console.log(state);
 			refs.lastDataTime = Date.now();
 			clearTimeout(refs.timeout!);
 			refs.timeout = setTimeout(handleTimeout, SOCKET_TIMEOUT);
