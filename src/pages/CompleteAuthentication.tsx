@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
 	CheckCircle,
@@ -8,13 +8,22 @@ import {
 	Wine,
 } from "@phosphor-icons/react";
 import { Header } from "../components/Header";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 export default function CompleteAuthentication() {
+	const navigate = useNavigate();
 	const location = useLocation();
 	const [isSuccess, setIsSuccess] = useState(location.state?.success ?? true);
 
 	const results = JSON.parse(localStorage.getItem("results") || "{}");
+
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			navigate("/");
+		}, 5000);
+
+		return () => clearTimeout(timer);
+	}, [navigate]);
 
 	const stats = [
 		{ icon: Heart, value: results.bpm || "0", unit: "уд/м" },
