@@ -13,7 +13,7 @@ const TIMEOUT_MESSAGE =
 
 // Type definitions
 type SensorData = {
-	bpm?: string;
+	// bpm?: string;
 	temperature?: string;
 	alcoholLevel?: string;
 };
@@ -21,13 +21,17 @@ type SensorData = {
 type HealthCheckState = {
 	currentState: StateKey;
 	stabilityTime: number;
-	bpmData: { bpm: number };
+	// bpmData: { bpm: number };
 	temperatureData: { temperature: number };
 	alcoholData: { alcoholLevel: string };
 	secondsLeft: number;
 };
 
-const STATE_SEQUENCE: StateKey[] = ["PULSE", "TEMPERATURE", "ALCOHOL"];
+const STATE_SEQUENCE: StateKey[] = [
+	// "PULSE",
+	"TEMPERATURE",
+	"ALCOHOL",
+];
 
 const configureSocketListeners = (
 	socket: Socket,
@@ -44,9 +48,9 @@ const configureSocketListeners = (
 
 	// Add only the listener for current state
 	switch (currentState) {
-		case "PULSE":
-			socket.on("heartbeat", handlers.onData);
-			break;
+		// case "PULSE":
+		// 	socket.on("heartbeat", handlers.onData);
+		// 	break;
 		case "TEMPERATURE":
 			socket.on("temperature", handlers.onData);
 			break;
@@ -62,9 +66,9 @@ export const useHealthCheck = (): HealthCheckState & {
 } => {
 	const navigate = useNavigate();
 	const [state, setState] = useState<Omit<HealthCheckState, "secondsLeft">>({
-		currentState: "PULSE",
+		currentState: "TEMPERATURE",
 		stabilityTime: 0,
-		bpmData: { bpm: 0 },
+		// bpmData: { bpm: 0 },
 		temperatureData: { temperature: 0 },
 		alcoholData: { alcoholLevel: "undefined" },
 	});
@@ -114,10 +118,10 @@ export const useHealthCheck = (): HealthCheckState & {
 					state.stabilityTime + 1,
 					MAX_STABILITY_TIME,
 				),
-				bpmData:
-					state.currentState === "PULSE"
-						? { bpm: Number(data.bpm!) }
-						: state.bpmData,
+				// bpmData:
+				// 	state.currentState === "PULSE"
+				// 		? { bpm: Number(data.bpm!) }
+				// 		: state.bpmData,
 				temperatureData:
 					state.currentState === "TEMPERATURE"
 						? { temperature: Number(data.temperature!) }
@@ -131,7 +135,7 @@ export const useHealthCheck = (): HealthCheckState & {
 		[
 			state.currentState,
 			state.stabilityTime,
-			state.bpmData,
+			// state.bpmData,
 			state.temperatureData,
 			state.alcoholData,
 			updateState,
@@ -224,7 +228,8 @@ export const useHealthCheck = (): HealthCheckState & {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify({
-						bpmData: state.bpmData,
+						bpmData: 0,
+						// state.bpmData,
 						temperatureData: state.temperatureData,
 						alcoholData: state.alcoholData,
 						faceId,
@@ -237,7 +242,8 @@ export const useHealthCheck = (): HealthCheckState & {
 			localStorage.setItem(
 				"results",
 				JSON.stringify({
-					bpm: state.bpmData.bpm,
+					bpm: 0,
+					// state.bpmData.bpm,
 					temperature: state.temperatureData.temperature,
 					alcohol: state.alcoholData.alcoholLevel,
 				}),

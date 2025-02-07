@@ -4,8 +4,8 @@ import { motion } from "framer-motion";
 import { Header } from "../components/Header";
 import { VideoDisplay } from "../components/VideoDisplay";
 import {
-	// useDeviceCamera,
-	useRaspberryCamera,
+	useDeviceCamera,
+	// useRaspberryCamera,
 } from "../lib/hooks/useCamera";
 import toast from "react-hot-toast";
 import { faceRecognitionService } from "../lib/services/faceRecognitionService";
@@ -70,7 +70,7 @@ export default function FaceIdentification() {
 		videoRef,
 		canvasRef,
 		error: cameraError,
-	} = useRaspberryCamera({
+	} = useDeviceCamera({
 		onFrame: handleFrame,
 	});
 
